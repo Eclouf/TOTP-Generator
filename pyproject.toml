@@ -1,0 +1,14 @@
+totp-gui
+├── src
+│   ├── __init__.py
+│   ├── app.py
+│   ├── totp.py
+│   └── views
+│       ├── __init__.py
+│       └── main_window.py
+├── tests
+│   ├── __init__.py
+│   └── test_totp.py
+├── pyproject.toml
+├── requirements.txt
+└── README.md
