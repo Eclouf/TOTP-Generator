@@ -1,3 +1,4 @@
+# <p align="center">![Image](https://github.com/Eclouf/TOTP-Generator/blob/672572ca6931b7b7a16503a9251d10f32accf41d/src/resources/TOTP.png)</p>
 # TOTP Generator GUI
 
 A modern graphical user interface for generating TOTP (Time-based One-Time Password) codes according to RFC 6238.
@@ -16,7 +17,7 @@ A modern graphical user interface for generating TOTP (Time-based One-Time Passw
 
 ### Prerequisites
 
-- Python 3.7+
+- Python 3.11+
 - pip (Python package manager)
 
 ### Installing Dependencies
@@ -82,11 +83,11 @@ totp-gui/
 │   ├── __init__.py
 │   ├── app.py
 │   ├── totp.py
+│   ├──resources/
+│       └── TOTP.png
 │   └── views/
 │       ├── __init__.py
 │       └── main_window.py
-├── resources/
-│   └── TOTP.png
 ├── requirements.txt
 └── README.md
 ```
@@ -96,15 +97,6 @@ totp-gui/
 - **toga**: Cross-platform GUI framework
 - **pyperclip**: Clipboard management
 - **cryptography**: Cryptographic functions
-
-## Development
-
-To contribute to this project:
-
-1. Clone the repository
-2. Install development dependencies
-3. Create a branch for your changes
-4. Submit a pull request
 
 ## License
 
