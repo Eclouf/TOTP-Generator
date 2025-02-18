@@ -1,16 +1,36 @@
 import toga
 import time
+import sys
+import os
 import asyncio
 import pyperclip
 import re
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
+# Modifier l'import pour qu'il fonctionne avec PyInstaller
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from src.totp import generate_totp_secret  # Import relatif depuis le dossier parent
+
+if getattr(sys, 'frozen', False):
+    # Si le programme est exécuté en tant qu'exécutable
+    base_path = sys._MEIPASS  # Répertoire temporaire créé par PyInstaller
+else:
+    # Si le programme est exécuté en tant que script Python normal
+    base_path = os.path.dirname(os.path.dirname(__file__))
+
+
+LOGO = os.path.join(base_path, 'resources','TOTP.png')
+
 class MainWindow(toga.MainWindow):
     def __init__(self, title, app):
         super().__init__(
             title,
-            size=(300, 550),
+            size=(300, 570),
             resizable=False
         )
         
@@ -48,7 +68,7 @@ class MainWindow(toga.MainWindow):
         )
         self.time = toga.ProgressBar(max=100, value=0, style=Pack(flex=1))
         
-        self.result_label = toga.Label('', style=Pack(font_weight="bold",text_align="center", font_size=40,flex=1))
+        self.result_label = toga.Label('------', style=Pack(font_weight="bold",text_align="center", font_size=45,flex=1))
         
         # Bouton de génération
         generate_button = toga.Button('Générer', style=Pack(flex=1), on_press=self.generate_totp)
@@ -61,55 +81,56 @@ class MainWindow(toga.MainWindow):
             children=[
                 toga.Box(
                     children=[
-                        toga.ImageView('resources/TOTP.png', style=Pack(alignment="center",width=90, height=90, flex=1)),
-                        toga.Label('TOTP', style=Pack(alignment="center", text_align="center", font_weight="bold", font_size=50, flex=1)),
+                        toga.ImageView(LOGO, style=Pack(alignment="center",width=90, height=90, flex=1)),
+                        toga.Label('TOTP', style=Pack(alignment="center", text_align="center", font_weight="bold", font_size=45, flex=1)),
                         ],
-                     style=Pack(direction=ROW, padding=5)),
+                     style=Pack(direction=ROW, padding=3)),
                 toga.Box(
                     children=[
+                        toga.Divider(),
                         self.result_label,
                         toga.Divider()
                         ],
-                    style=Pack(direction=COLUMN, padding=5, flex=1)
+                    style=Pack(direction=COLUMN, padding=1, flex=1)
                 ),
                 toga.Box(
                     children=[
                         self.time,
                         copy_button
                         ],
-                    style=Pack(direction=ROW, padding=5, flex=1)
+                    style=Pack(direction=ROW, padding=1, flex=1)
                 ),
                 toga.Box(
                     children=[
-                        toga.Label('Secret : ', style=Pack(flex=1)),
+                        toga.Label('Secret :', style=Pack(flex=1)),
                         self.secret_input
                     ],
-                    style=Pack(direction=ROW, padding=5, flex=1)
+                    style=Pack(direction=ROW, padding=1, flex=1)
                 ),
                 toga.Box(
                     children=[
-                        toga.Label('Période (sec): ', style=Pack(flex=1)),
+                        toga.Label('Période (sec):', style=Pack(flex=1)),
                         self.period_input
                     ],
-                    style=Pack(direction=ROW, padding=5, flex=1)
+                    style=Pack(direction=ROW, padding=1, flex=1)
                 ),
                 toga.Box(
                     children=[
-                        toga.Label('Nombre de chiffres: ', style=Pack(flex=1)),
+                        toga.Label('Nombre de chiffres:', style=Pack(flex=1)),
                         self.digits_input
                     ],
-                    style=Pack(direction=ROW, padding=5, flex=1)
+                    style=Pack(direction=ROW, padding=1, flex=1)
                 ),
                 toga.Box(
                     children=[
-                        toga.Label('Algorithme: ', style=Pack(flex=1)),
+                        toga.Label('Algorithme:', style=Pack(flex=1)),
                         self.algo_selection
                     ],
-                    style=Pack(direction=ROW, padding=5, flex=1)
+                    style=Pack(direction=ROW, padding=1, flex=1)
                 ),
                 toga.Box(
                     children=[generate_button],
-                    style=Pack(direction=ROW, padding=5, flex=1)
+                    style=Pack(direction=ROW, padding=1, flex=1)
                 ),
             ],
             style=Pack(direction=COLUMN, padding=10)
@@ -144,7 +165,7 @@ class MainWindow(toga.MainWindow):
 
     def generate_totp(self, widget):
         try:
-            from ..totp import generate_totp_secret
+            
             
             secret = self.secret_input.value.strip()
             
@@ -210,11 +231,11 @@ class MainWindow(toga.MainWindow):
                 
                 # Mise à jour de la barre de progression toutes les secondes
                 for i in range(int(wait_time)):
-                    self.time.value = int((i / wait_time) * 100)
+                    self.time.value = int(100 - ((i / wait_time) * 100))
                     await asyncio.sleep(1)  # Attendre 1 seconde
                 
                 # Assurer que la barre atteint 100% avant de régénérer
-                self.time.value = 100
+                self.time.value = 0
                 
                 # Regénérer le code
                 await asyncio.sleep(0.1)  # Petit délai pour voir la barre à 100%
