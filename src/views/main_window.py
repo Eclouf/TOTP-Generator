@@ -25,12 +25,14 @@ else:
 
 
 LOGO = os.path.join(base_path, 'resources','TOTP.png')
+CLIPBOARD = os.path.join(base_path, 'resources','clipboard.png')
+CLIPBOARD_COPY = os.path.join(base_path, 'resources','clipboard-1.png')
 
 class MainWindow(toga.MainWindow):
     def __init__(self, title, app):
         super().__init__(
             title,
-            size=(300, 570),
+            size=(300, 470),
             resizable=False
         )
         
@@ -66,7 +68,7 @@ class MainWindow(toga.MainWindow):
             value="sha1",
             style=Pack(flex=1)
         )
-        self.time = toga.ProgressBar(max=100, value=0, style=Pack(flex=1))
+        self.time = toga.ProgressBar(max=100, value=0, style=Pack(padding_top=3,flex=1))
         
         self.result_label = toga.Label('------', style=Pack(font_weight="bold",text_align="center", font_size=45,flex=1))
         
@@ -74,63 +76,69 @@ class MainWindow(toga.MainWindow):
         generate_button = toga.Button('Générer', style=Pack(flex=1), on_press=self.generate_totp)
         
         # Bouton de copie
-        copy_button = toga.Button('Copier', style=Pack(width=50,flex=1), on_press=self.copy_to_clipboard)
+        self.copy_button = toga.Button(icon=CLIPBOARD, style=Pack(width=30,flex=1), on_press=self.copy_to_clipboard)
+        self.copy_button.enabled = False
         
         # Layout
         input_box = toga.Box(
             children=[
                 toga.Box(
                     children=[
-                        toga.ImageView(LOGO, style=Pack(alignment="center",width=90, height=90, flex=1)),
-                        toga.Label('TOTP', style=Pack(alignment="center", text_align="center", font_weight="bold", font_size=45, flex=1)),
+                        toga.ImageView(LOGO, style=Pack(width=90, height=90, flex=1)),
+                        #toga.Label('TOTP', style=Pack(alignment="center", text_align="center", font_weight="bold", font_size=45, flex=1)),
                         ],
-                     style=Pack(direction=ROW, padding=3)),
+                     style=Pack(direction=COLUMN, alignment="center", padding=5)),
                 toga.Box(
                     children=[
                         toga.Divider(),
                         self.result_label,
                         toga.Divider()
                         ],
-                    style=Pack(direction=COLUMN, padding=1, flex=1)
+                    style=Pack(direction=COLUMN, padding=5)
                 ),
                 toga.Box(
                     children=[
                         self.time,
-                        copy_button
+                        self.copy_button
                         ],
-                    style=Pack(direction=ROW, padding=1, flex=1)
+                    style=Pack(direction=ROW, padding=5)
                 ),
                 toga.Box(
                     children=[
-                        toga.Label('Secret :', style=Pack(flex=1)),
+                        toga.Label('Secret (key/otpauth):',style=Pack(flex=1)),
+                    ],
+                    style=Pack(direction=ROW, padding=5)
+                ),
+                toga.Box(
+                    children=[
                         self.secret_input
                     ],
-                    style=Pack(direction=ROW, padding=1, flex=1)
+                    style=Pack(direction=ROW, padding=5)
                 ),
                 toga.Box(
                     children=[
                         toga.Label('Période (sec):', style=Pack(flex=1)),
                         self.period_input
                     ],
-                    style=Pack(direction=ROW, padding=1, flex=1)
+                    style=Pack(direction=ROW, padding=5)
                 ),
                 toga.Box(
                     children=[
                         toga.Label('Nombre de chiffres:', style=Pack(flex=1)),
                         self.digits_input
                     ],
-                    style=Pack(direction=ROW, padding=1, flex=1)
+                    style=Pack(direction=ROW, padding=5)
                 ),
                 toga.Box(
                     children=[
                         toga.Label('Algorithme:', style=Pack(flex=1)),
                         self.algo_selection
                     ],
-                    style=Pack(direction=ROW, padding=1, flex=1)
+                    style=Pack(direction=ROW, padding=5)
                 ),
                 toga.Box(
                     children=[generate_button],
-                    style=Pack(direction=ROW, padding=1, flex=1)
+                    style=Pack(direction=ROW, padding=5)
                 ),
             ],
             style=Pack(direction=COLUMN, padding=10)
@@ -166,7 +174,6 @@ class MainWindow(toga.MainWindow):
     def generate_totp(self, widget):
         try:
             
-            
             secret = self.secret_input.value.strip()
             
             # Vérifier si c'est une URI TOTP
@@ -201,7 +208,7 @@ class MainWindow(toga.MainWindow):
             )
             
             self.result_label.text = f"{code}"
-            
+            self.copy_button.enabled = True
             # Démarrer la mise à jour automatique
             if self.update_task is None:
                 self.update_task = self.app.loop.create_task(self.auto_update())
@@ -236,14 +243,16 @@ class MainWindow(toga.MainWindow):
                 
                 # Assurer que la barre atteint 100% avant de régénérer
                 self.time.value = 0
-                
+                self.copy_button.icon = CLIPBOARD
                 # Regénérer le code
                 await asyncio.sleep(0.1)  # Petit délai pour voir la barre à 100%
                 if self.secret_input.value:
                     self.generate_totp(None)
                 else:
                     self.time.value = 0
+                    self.result_label.text = "------"
                     self.update_task = None
+                    self.copy_button.enabled = False
                     break
                 
             except Exception as e:
@@ -256,22 +265,16 @@ class MainWindow(toga.MainWindow):
         try:
             # Extraire le code du label (enlever le préfixe "Code TOTP: ")
             code = self.result_label.text
-            
+            self.copy_button.icon = CLIPBOARD_COPY
             # Vérifier si un code existe
             if code and code != "":
                 # Utiliser pyperclip pour la compatibilité multi-plateforme
                 pyperclip.copy(code)
                 # Feedback temporaire
-                self.result_label.text = "Code copié !"
-                # Remettre le texte original après 1 seconde
-                self.update_task = widget.app.loop.create_task(self.reset_label(code))
+                self.app.loop.create_task(self.informations("Info", "Code copié !"))
+                
         except Exception as e:
             print(f"Erreur lors de la copie: {e}")
-    
-    async def reset_label(self, code):
-        """Remet le texte original du label après un délai"""
-        await asyncio.sleep(1)
-        self.result_label.text = f"{code}"
 
 def main():
     return MainWindow("TOTP Generator", None)
