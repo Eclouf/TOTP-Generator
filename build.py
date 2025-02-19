@@ -36,11 +36,11 @@ def update_changelog():
     """Gère la mise à jour du changelog"""
     changelog_file = "CHANGELOG.md"
     version_file = "version.txt"
+    info = "info.plist"
     
     if os.path.exists(changelog_file):
         with open(changelog_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
         # Extraire la dernière version
         version_match = re.search(r"## \[(\d+\.\d+\.\d+)\]", content)
         if version_match:
@@ -91,11 +91,15 @@ def update_changelog():
             
             with open(version_file, 'r', encoding='utf-8') as f:
                 version_text = f.read()
-                print(version_text)
                 version_text = re.sub(r"StringStruct\('ProductVersion', '(.*?)'\),", f"StringStruct(\'ProductVersion\', \'{new_version}\'),", version_text)
-                print(version_text)
             with open(version_file, 'w', encoding='utf-8') as f:
                 f.write(version_text)
+            
+            with open(info, 'r', encoding='utf-8') as f:
+                info_text = f.read()
+                info_text = re.sub(r"<string>(.*?)</string>", f"<string>{new_version}</string>", info_text)
+            with open(info, 'w', encoding='utf-8') as f:
+                f.write(info_text)
             
         else:
             print("No version found in changelog")
@@ -121,14 +125,15 @@ def main():
         if not install_pyinstaller():
             return
     # Mise à jour du changelog avant la compilation
-    update_changelog()
+    update = get_user_choice("Do you want to update the changelog?", ["oui", "non"])
+    if update == "oui":
+        update_changelog()
+    else:
+        print("Changelog not updated.")
     
     # Options de compilation
     onefile = get_user_choice("Do you want to compile to a single file?", ["oui", "non"])
     console = get_user_choice("Do you want to keep the console visible?", ["oui", "non"])
-    
-    # Mise à jour du changelog avant la compilation
-    update_changelog()
     
     # Construction de la commande PyInstaller
     cmd = ["pyinstaller"]
@@ -144,16 +149,18 @@ def main():
     if check_os() == "Windows":
         print("Compilation for Windows...")
         cmd.append("--version-file=version.txt")
+        cmd.append("--icon=src/resources/TOTP.ico")
         #cmd.append("--manifest=manifest.xml")
     elif check_os() == "Darwin":
         print("Compilation for macOS...")
         cmd.append("--osx-bundle-identifier=com.eclouf.audeo")
-        cmd.append("--target-architecture=universal")
-        cmd.append("--osx-entitlements-file=entitlements.plist")
+        arch = get_user_choice("Choose the architecture", ["x86_64", "arm64", "universal2"])
+        cmd.append(f"--target-architecture={arch}")
+        cmd.append("--osx-entitlements-file=info.plist")
+        cmd.append("--icon=src/resources/TOTP.icns")
         
     cmd.extend([
         "--name", "TOTP Generator",
-        "--icon=src/resources/TOTP.ico",
         "--add-data=src/resources:resources",
         "--add-data=src/views:views",
         '--hidden-import=src.totp', 

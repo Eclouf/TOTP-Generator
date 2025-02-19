@@ -13,7 +13,7 @@ else:
 
 LOGO = os.path.join(base_path, 'resources','TOTP.png')
 
-from .views import main_window 
+from views import main_window 
 
 class TOTPApp(toga.App):
     def startup(self):
